@@ -15,29 +15,30 @@ class EditProductScreen extends StatefulWidget {
 class _EditProductScreenState extends State<EditProductScreen> {
   final _form = GlobalKey<FormState>();
   final _imageForm = GlobalKey<FormState>();
+  bool isLoading = false;
   var _product = Product(
     id: "",
     title: "",
     description: "",
     imageUrl: "",
-    price: 0,
+    price:0,
   );
-  bool _hasImage=true;
-  bool _init=true;
-
+  bool _hasImage = true;
+  bool _init = true;
 
   @override
   void didChangeDependencies() {
     // TODO: implement didChangeDependencies
     super.didChangeDependencies();
-    if(_init){
-      final productId=ModalRoute.of(context)!.settings.arguments;
-      if(productId!=null){
-        final _editingProduct=Provider.of<Products>(context).findById(productId as String);
-        _product=_editingProduct;
+    if (_init) {
+      final productId = ModalRoute.of(context)!.settings.arguments;
+      if (productId != null) {
+        final _editingProduct =
+            Provider.of<Products>(context).findById(productId as String);
+        _product = _editingProduct;
       }
     }
-    _init=false;
+    _init = false;
   }
 
   Future showImageDialog(BuildContext context) {
@@ -48,7 +49,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
             title: Text("Rasm URL-ni kiriting:"),
             content: Form(
               key: _imageForm,
-              child: TextFormField(initialValue: _product.imageUrl,
+              child: TextFormField(
+                initialValue: _product.imageUrl,
                 decoration: const InputDecoration(
                   labelText: "Rasm URL",
                   border: OutlineInputBorder(),
@@ -79,14 +81,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
               TextButton(
                   onPressed: () {
                     setState(() {
-                      _hasImage=false;
-
+                      _hasImage = false;
                     });
 
                     Navigator.of(context).pop();
                   },
                   child: Text("BEKOR QILISH")),
-              ElevatedButton(onPressed:(){ _saveImageForm();}, child: Text("SAQLASH"))
+              ElevatedButton(
+                  onPressed: () {
+                    _saveImageForm();
+                  },
+                  child: Text("SAQLASH"))
             ],
           );
         });
@@ -97,33 +102,70 @@ class _EditProductScreenState extends State<EditProductScreen> {
     if (isValid) {
       _imageForm.currentState!.save();
       setState(() {
-        _hasImage=true;
+        _hasImage = true;
       });
       Navigator.of(context).pop();
     }
   }
 
-  void _saveForm() {
+  Future<void> _saveForm() async {
     final isValid = _form.currentState!.validate();
     print(isValid);
-    if(isValid&&_hasImage ){
+    if (isValid && _hasImage) {
       _form.currentState!.save();
       setState(() {
-
+        isLoading = true;
       });
-      if(_product.id.isEmpty){
-        Provider.of<Products>(context,listen: false).addProduct(_product);
-      }
-      else{
-        Provider.of<Products>(context,listen: false).updateProduct(_product);
+      if (_product.id.isEmpty) {
+        try {
+          await Provider.of<Products>(context, listen: false)
+              .addProduct(_product);
+        } catch (error) {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text("Xatolik!"),
+                  content:
+                      const Text("Mahsulot qo'shishda nimadir xatolik bo'kdi"),
+                  actions: [
+                    ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text("Okay"))
+                  ],
+                );
+              });
+        }
 
-      }
+      } else {
+       try{
+       await  Provider.of<Products>(context,listen: false).updateProduct(_product);
+
+       }catch(e){
+       await showDialog(
+             context: context,
+             builder: (context) {
+               return AlertDialog(
+                 title: const Text("Xatolik!"),
+                 content:
+                 const Text("Mahsulot qo'shishda nimadir xatolik bo'ldi"),
+                 actions: [
+                   ElevatedButton(
+                       onPressed: () {
+                         Navigator.pop(context);
+                       },
+                       child: const Text("Okay"))
+                 ],
+               );
+             });
+       }
+      }  setState(() {
+        isLoading=false;
+      });
       Navigator.of(context).pop();
-
-
     }
-
-
   }
 
   @override
@@ -137,7 +179,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           IconButton(onPressed: _saveForm, icon: const Icon(Icons.save))
         ],
       ),
-      body: GestureDetector(
+      body:isLoading?Center(child: CircularProgressIndicator(),): GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Form(
           key: _form,
@@ -239,21 +281,30 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   margin: EdgeInsets.symmetric(horizontal: 1),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(5),
-                      side: BorderSide(color: _hasImage? Colors.grey:Colors.red,width: _hasImage? 1:2)),
+                      side: BorderSide(
+                          color: _hasImage ? Colors.grey : Colors.red,
+                          width: _hasImage ? 1 : 2)),
                   child: InkWell(
-
                     onTap: () {
                       showImageDialog(context);
                     },
                     child: Container(
-                      alignment: Alignment.center,
-                      height: 180,
-                      width: double.infinity,
-                      child: _product.imageUrl.isEmpty? Text(
-                        "Rasm URL-ni kiriting:",
-                        style: TextStyle(color: _hasImage? Colors.black54:Colors.red, fontSize: 16),
-                      ):Image.network(_product.imageUrl,fit: BoxFit.cover,width: double.infinity,)
-                    ),
+                        alignment: Alignment.center,
+                        height: 180,
+                        width: double.infinity,
+                        child: _product.imageUrl.isEmpty
+                            ? Text(
+                                "Rasm URL-ni kiriting:",
+                                style: TextStyle(
+                                    color:
+                                        _hasImage ? Colors.black54 : Colors.red,
+                                    fontSize: 16),
+                              )
+                            : Image.network(
+                                _product.imageUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              )),
                   ),
                 )
               ],

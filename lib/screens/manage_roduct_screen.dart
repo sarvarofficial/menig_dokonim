@@ -8,6 +8,10 @@ import '../widgets/app_drawer.dart';
 class ManageProductScreen extends StatelessWidget {
   const ManageProductScreen({Key? key}) : super(key: key);
   static const routName='/product-mange-screen';
+  Future<void> refresh(BuildContext context) async{
+    await Provider.of<Products>(context,listen:  false).getProducts();
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,14 +29,19 @@ class ManageProductScreen extends StatelessWidget {
         ],
       ),
 
-      body: ListView.builder(
-        itemCount: productsProvider.list.length,
-          itemBuilder: (context,index){
-         final products=productsProvider.list[index];
+      body: RefreshIndicator(
+        onRefresh: ()async {
+          refresh(context);
+        },
+        child: ListView.builder(
+          itemCount: productsProvider.list.length,
+            itemBuilder: (context,index){
+           final products=productsProvider.list[index];
 
-        return ChangeNotifierProvider.value(value: products,
-        child:const UserProductItem());
-      }),
+          return ChangeNotifierProvider.value(value: products,
+          child:const UserProductItem());
+        }),
+      ),
     );
   }
 }
